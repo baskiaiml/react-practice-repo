@@ -1,10 +1,9 @@
 import styles from "./Chat.module.css";
-const WELCOME_MESSAGE = [
+const WELCOME_MESSAGE =
   {
     role: "assistent",
     content: "Hello, How can I help you",
-  },
-];
+  };
 export default function Chat({ messages }) {
   return (
     <>
