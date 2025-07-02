@@ -1,4 +1,3 @@
-/* eslint-disable no-useless-catch */
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -8,19 +7,39 @@ const openai = new OpenAI({
 
 export class Assistant {
   #model;
+  #client;
 
-  constructor(model = "gpt-4.1") {
+  constructor(model = "gpt-4o-mini", client=openai) {
     this.#model = model;
+    this.#client = client;
   }
 
   async chat(content, history) {
+    // eslint-disable-next-line no-useless-catch
     try {
-      const result = await openai.chat.completions.create({
+      const result = await this.#client.chat.completions.create({
         model: this.#model,
         messages: [...history, { content, role: "user" }],
       });
 
       return result.choices[0].message.content;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async *chatStream(content, history) {
+    // eslint-disable-next-line no-useless-catch
+    try {
+      const result = await this.#client.chat.completions.create({
+        model: this.#model,
+        messages: [...history, { content, role: "user" }],
+        stream: true,
+      });
+
+      for await (const chunk of result) {
+        yield chunk.choices[0]?.delta?.content || "";
+      }
     } catch (error) {
       throw error;
     }

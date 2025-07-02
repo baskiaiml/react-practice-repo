@@ -1,19 +1,43 @@
+import { useEffect, useRef, useMemo } from "react";
 import styles from "./Chat.module.css";
-const WELCOME_MESSAGE =
-  {
-    role: "assistent",
-    content: "Hello, How can I help you",
-  };
+import Markdown from "react-markdown";
+const WELCOME_MESSAGE_GROUP =[ {
+  role: "assistent",
+  content: "Hello, How can I help you",
+},];
+
 export default function Chat({ messages }) {
+  const messagesEndRef = useRef(null);
+  const messagesGroups = useMemo(
+    () =>
+      messages.reduce((groups, message) => {
+        if (message.role === "user") groups.push([]);
+        groups[groups.length - 1].push(message);
+        return groups;
+      }, []),
+    [messages]
+  );
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
   return (
-    <>
-      <div className={styles.Chat}>
-        {[WELCOME_MESSAGE, ...messages].map(({ role, content }, index) => (
-          <div key={index} className={styles.Message} data-role={role}>
-            {content}
+    <div className={styles.Chat}>
+      {[WELCOME_MESSAGE_GROUP, ...messagesGroups].map(
+        (messages, groupIndex) => (
+          // Group
+          <div key={groupIndex} className={styles.Group}>
+            {messages.map(({ role, content }, index) => (
+              // Message
+              <div key={index} className={styles.Message} data-role={role}>
+                <Markdown>{content}</Markdown>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </>
+        )
+      )}
+
+      <div ref={messagesEndRef} />
+    </div>
   );
 }
