@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import styles from "./Controls.module.css";
 import TextareaAutosize from "react-textarea-autosize";
+import styles from "./Controls.module.css";
+
 export function Controls({ isDisabled = false, onSend }) {
-  const textarearef = useRef(null);
+  const textareaRef = useRef(null);
   const [content, setContent] = useState("");
 
   useEffect(() => {
     if (!isDisabled) {
-      textarearef.current.focus();
+      textareaRef.current.focus();
     }
   }, [isDisabled]);
+
   function handleContentChange(event) {
     setContent(event.target.value);
   }
@@ -27,24 +29,25 @@ export function Controls({ isDisabled = false, onSend }) {
       handleContentSend();
     }
   }
+
   return (
     <div className={styles.Controls}>
       <div className={styles.TextAreaContainer}>
         <TextareaAutosize
-          placeholder="Message AI Chatbot"
+          ref={textareaRef}
           className={styles.TextArea}
+          disabled={isDisabled}
+          placeholder="Message AI Chatbot"
           value={content}
-          ref={textarearef}
+          minRows={1}
+          maxRows={4}
           onChange={handleContentChange}
           onKeyDown={handleEnterPress}
-          maxRows={4}
-          minRows={1}
-          isDisabled={isDisabled}
-        ></TextareaAutosize>
+        />
       </div>
       <button
         className={styles.Button}
-        isDisabled={isDisabled}
+        disabled={isDisabled}
         onClick={handleContentSend}
       >
         <SendIcon />
@@ -60,7 +63,7 @@ function SendIcon() {
       height="24px"
       viewBox="0 -960 960 960"
       width="24px"
-      fill="#1f1f1f"
+      fill="#5f6368"
     >
       <path d="M120-160v-240l320-80-320-80v-240l760 320-760 320Z" />
     </svg>

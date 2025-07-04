@@ -1,22 +1,21 @@
-import { useState, Ref } from "react";
+import { useState } from "react";
+import { Assistant as AssistantClass } from "./assistants/anthropicai";
+import { Sidebar } from "./components/Sidebar/Sidebar";
+import { Loader } from "./components/Loader/Loader";
+import { Chat } from "./components/Chat/Chat";
+import { Controls } from "./components/Controls/Controls";
+import { Assistant } from "./components/Assistant/Assistant";
+import { Theme } from "./components/Theme/Theme";
 import styles from "./App.module.css";
-import Chat from "./components/chat/Chat";
-import { Controls } from "./components/controls/Controls";
-import { Assistant } from "./assistants/deepseek";
-//import { Assistant } from "./assistants/openai";
-import { Loader } from "./components/loader/Loader";
+
+let assistant;
 
 function App() {
-  const assistant = new Assistant();
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-    const [isStreaming, setIsStreaming] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
 
-  function addMessage(message) {
-    setMessages((prevMessages) => [...prevMessages, message]);
-  }
-
- function updateLastMessageContent(content) {
+  function updateLastMessageContent(content) {
     setMessages((prevMessages) =>
       prevMessages.map((message, index) =>
         index === prevMessages.length - 1
@@ -26,48 +25,73 @@ function App() {
     );
   }
 
+  function addMessage(message) {
+    setMessages((prevMessages) => [...prevMessages, message]);
+  }
+
   async function handleContentSend(content) {
     addMessage({ content, role: "user" });
     setIsLoading(true);
     try {
-      const result = await assistant.chatStream(content, messages);
+      const result = await assistant.chatStream(
+        content,
+        messages.filter(({ role }) => role !== "system")
+      );
+
       let isFirstChunk = false;
-      for await (const chunk of result){
-        if(!isFirstChunk){
+      for await (const chunk of result) {
+        if (!isFirstChunk) {
           isFirstChunk = true;
-          addMessage({content:"", role:"assistant"});
+          addMessage({ content: "", role: "assistant" });
           setIsLoading(false);
           setIsStreaming(true);
         }
 
         updateLastMessageContent(chunk);
       }
+
+      setIsStreaming(false);
     } catch (error) {
-      console.log(error);
       addMessage({
-        content: "Sorry, I couldn't process your request. Please try again!",
+        content:
+          error?.message ??
+          "Sorry, I couldn't process your request. Please try again!",
         role: "system",
       });
       setIsLoading(false);
-          setIsStreaming(false);
-    }finally{
-          setIsLoading(false);
+      setIsStreaming(false);
     }
+  }
+
+  function handleAssistantChange(newAssistant) {
+    assistant = newAssistant;
   }
 
   return (
     <div className={styles.App}>
       {isLoading && <Loader />}
       <header className={styles.Header}>
-        <img src="/chatbot.png" className={styles.Logo} alt="AI Chatbot" />
+        <img className={styles.Logo} src="/chat-bot.png" />
         <h2 className={styles.Title}>AI Chatbot</h2>
       </header>
 
-      <div className={styles.ChatContainer}>
-        <Chat messages={messages} />
-      </div>
+      <div className={styles.Content}>
+        <Sidebar />
 
-      <Controls isDisabled={isLoading || isStreaming} onSend={handleContentSend} />
+        <main className={styles.Main}>
+          <div className={styles.ChatContainer}>
+            <Chat messages={messages} />
+          </div>
+          <Controls
+            isDisabled={isLoading || isStreaming}
+            onSend={handleContentSend}
+          />
+          <div className={styles.Configuration}>
+            <Assistant onAssistantChange={handleAssistantChange} />
+            <Theme />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

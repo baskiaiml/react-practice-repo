@@ -1,7 +1,7 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPEN_AI_API_KEY,
+const anthropic = new Anthropic({
+  apiKey: import.meta.env.VITE_ANTHROPIC_AI_API_KEY,
   dangerouslyAllowBrowser: true,
 });
 
@@ -9,19 +9,20 @@ export class Assistant {
   #client;
   #model;
 
-  constructor(model = "gpt-4o-mini", client = openai) {
+  constructor(model = "claude-3-5-haiku-latest", client = anthropic) {
     this.#client = client;
     this.#model = model;
   }
 
   async chat(content, history) {
     try {
-      const result = await this.#client.chat.completions.create({
+      const result = await this.#client.messages.create({
         model: this.#model,
         messages: [...history, { content, role: "user" }],
+        max_tokens: 1024,
       });
 
-      return result.choices[0].message.content;
+      return result.content[0].text;
     } catch (error) {
       throw this.#parseError(error);
     }
@@ -29,14 +30,17 @@ export class Assistant {
 
   async *chatStream(content, history) {
     try {
-      const result = await this.#client.chat.completions.create({
+      const result = await this.#client.messages.create({
         model: this.#model,
         messages: [...history, { content, role: "user" }],
+        max_tokens: 1024,
         stream: true,
       });
 
       for await (const chunk of result) {
-        yield chunk.choices[0]?.delta?.content || "";
+        if (chunk.type === "content_block_delta") {
+          yield chunk.delta.text || "";
+        }
       }
     } catch (error) {
       throw this.#parseError(error);
@@ -44,6 +48,10 @@ export class Assistant {
   }
 
   #parseError(error) {
-    return error;
+    try {
+      return error.error.error;
+    } catch (parseError) {
+      return error;
+    }
   }
 }
